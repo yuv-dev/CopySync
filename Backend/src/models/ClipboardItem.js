@@ -1,1 +1,0 @@
-// Clipboard item schema
