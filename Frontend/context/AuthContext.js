@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useState, useEffect } from "react";
 import axios from "../utils/api";
-const LOGIN_API_URI = "http://localhost:5000/api/auth/google-login";
+import { LOGIN_API_URI, CLIPBOARD_API_URI } from "@/configs/API_configs";
 
 export const AuthContext = createContext();
 
@@ -11,8 +11,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (credential) => {
     try {
       const res = await axios.post(LOGIN_API_URI, { credential });
+      // Step: redirect to Google Drive consent screen
+      if (res.data.authUrl) {
+        window.location.href = res.data.authUrl;
+      }
 
       setUser(res.data.user);
+
       localStorage.setItem("clipSync-user", JSON.stringify(res.data.user));
       localStorage.setItem("clipSync-token", JSON.stringify(res.data.token));
     } catch (error) {
@@ -25,6 +30,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem("clipSync-user");
     localStorage.removeItem("clipSync-token");
+    localStorage.removeItem("clipboardHistory");
+    localStorage.removeItem("lastClipboard");
   };
 
   useEffect(() => {
@@ -32,6 +39,7 @@ export const AuthProvider = ({ children }) => {
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
+  
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}

@@ -2,20 +2,27 @@
 
 import { GoogleLogin } from "@react-oauth/google";
 import { useRouter } from "next/navigation";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 export default function Home() {
   const { login, user } = useContext(AuthContext);
   const router = useRouter();
 
-  const handleLoginSuccess = async (response) => {
-    try{
+  // useEffect(() => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   if (params.get("driveAccess")) {
+  //     alert("Google Drive access granted successfully.");
+  //     // You may remove this param from URL if needed
+  //     window.history.replaceState({}, document.title, "/");
+  //   }
+  // }, []);
 
+  const handleLoginSuccess = async (response) => {
+    try {
       console.log("Login successful:", response);
       await login(response.credential);
-      router.push("/dashboard");
-    }catch (error) {
+    } catch (error) {
       console.error("Login error:", error);
     }
   };

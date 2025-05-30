@@ -27,9 +27,9 @@ app.use("/api/clipboard", clipboardRoutes);
 
 // Set up routes
 app.use("/", (req, res) => {
-  res.write("App Connected\n");
-  res.write("Copy Sync");
-
+ 
+ res.write("App Connected\n");
+  res.write("CopySync");
   res.end();
 }); // Use the routes defined in routes.js
 

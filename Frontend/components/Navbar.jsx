@@ -3,6 +3,14 @@ import Image from "next/image";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
+import {
+  FaUser,
+  FaUserAlt,
+  FaUserAltSlash,
+  FaUserAstronaut,
+  FaUserCircle,
+  FaUserSlash,
+} from "react-icons/fa";
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -20,18 +28,42 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="flex items-center justify-between p-4 text-black bg-amber-300 shadow-amber-50 border-b border-gray-700">
+    <nav className="flex items-center justify-between h-[60px] p-4 text-black bg-amber-300 shadow-amber-50 border-b border-gray-700">
       <div className="flex items-center">
         <span className="ml-2 text-xl font-bold">ClipboardSync</span>
       </div>
-      {user && (
-        <div className="flex items-center">
-          <span className="mr-4 ">{user?.name}</span>
+      {user ? (
+        <div className="flex items-center align-center">
+          {user?.picture ? (
+            // <Image
+            //   src={user?.picture}
+            //   alt="User Avatar"
+            //   width={40}
+            //   height={40}
+            //   className="rounded-full mr-2"
+            // />
+            <FaUserAlt />
+          ) : (
+            <>
+              <FaUserAstronaut />
+            </>
+          )}
+          <span className="mr-4 font-semibold"> {user?.name}</span>
           <button
             onClick={logoutClick}
             className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
           >
             Logout
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center">
+          <span className="mr-4 font-bold ">Guest</span>
+          <button
+            onClick={() => router.push("/")}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+          >
+            SignIn
           </button>
         </div>
       )}

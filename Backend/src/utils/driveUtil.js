@@ -1,30 +1,42 @@
-const { google } = require('googleapis');
-const { Readable } = require('stream');
+const { google } = require("googleapis");
+const { getOrCreateFolder } = require("./createDrivefolder");
+const { uploadOrUpdateFile } = require("./uploadOrCreateFileInDrive");
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+const {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI,
+} = require("../config/env");
 
-oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-const drive = google.drive({ version: 'v3', auth: oauth2Client });
+exports.uploadClipboardToDrive = async (filename, refresh_token, content) => {
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      GOOGLE_REDIRECT_URI
+    );
 
-exports.uploadClipboardToDrive = async (filename, content) => {
-  const bufferStream = new Readable();
-  bufferStream.push(content);
-  bufferStream.push(null);
+    oauth2Client.setCredentials({
+      refresh_token: refresh_token,
+    });
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    // Step 1: Get or create folder
+    const folderId = await getOrCreateFolder(drive, "ClipSync");
+    // Step 2: Get existing fileId from DB or elsewhere (or pass null if first time)
+    const existingFileId = null; // Replace with your file tracking logic
 
-  const res = await drive.files.create({
-    requestBody: {
-      name: filename,
-      mimeType: 'text/plain',
-    },
-    media: {
-      mimeType: 'text/plain',
-      body: bufferStream,
-    },
-  });
+    // Step 3: Upload or update the file
+    const file = await uploadOrUpdateFile(
+      drive,
+      folderId,
+      filename,
+      content,
+      existingFileId
+    );
 
-  return res.data;
+    return file;
+  } catch (err) {
+    console.error("Error uploading to Google Drive:", err);
+    throw new Error("Failed to upload to Google Drive");
+  }
 };

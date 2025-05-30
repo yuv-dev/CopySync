@@ -4,6 +4,10 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   googleId: String,
+  picture: String,
+  createdAt: { type: Date, default: Date.now },
+  driveAccessToken :String,
+  driveRefreshToken :String,
 });
 UserSchema.static.comparePassword = async function (password) {
   //  bcrypt for password hashing
