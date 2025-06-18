@@ -1,11 +1,20 @@
 "use client";
 import React, { useEffect, useRef, useState, useContext } from "react";
 import axios from "axios";
-import { AuthContext } from "../../context/AuthContext";
-import CopiedText from "@/components/CopiedText";
-import { CLIPBOARD_API_URI } from "@/configs/API_configs";
-import { FaSync } from "react-icons/fa";
+import InfiniteScroll from "react-infinite-scroll-component";
 
+import { AuthContext } from "../../context/AuthContext";
+import { BACKEND_URL, CLIPBOARD_API_URI } from "@/configs/API_configs";
+
+import CopiedText from "@/components/CopiedText";
+import SideBar from "@/components/SideBar";
+import LoaderScreen from "@/components/LoaderScreen";
+import { useRouter } from "next/navigation";
+
+import { manualReadFromClipboard } from "@/utils/manualReadFromClipboard";
+import { registerDevice } from "@/utils/devicesutils";
+
+// This page is the main dashboard for the ClipSync application
 const Page = () => {
   const { user, logout } = useContext(AuthContext);
   const [sync, setSync] = useState(true);
@@ -15,11 +24,15 @@ const Page = () => {
   const [pausedClipboardValue, setPausedClipboardValue] = useState(null);
   const [xClipboard, setXClipboard] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [isRemoteLoaded, setIsRemoteLoaded] = useState(false);
 
   useEffect(() => {
-    fetchInitialClipboardHistory();
+    fetchFromLocalStorage();
+    fetchClipboardHistory();
+    registerDevice();
   }, [user]);
 
   useEffect(() => {
@@ -41,44 +54,9 @@ const Page = () => {
       skipFirstRead.current = true;
       interval = setInterval(async () => {
         try {
-          if (!document.hasFocus()) return;
-
-          const current = await navigator.clipboard.readText();
-
-          if (skipFirstRead.current) {
-            skipFirstRead.current = false;
-            if (current && current !== lastClipboard.current) {
-              lastClipboard.current = current;
-              localStorage.setItem("lastClipboard", current);
-            }
-            return;
-          }
-
-          if (
-            current &&
-            current !== lastClipboard.current &&
-            current !== pausedClipboardValue
-          ) {
-            lastClipboard.current = current;
-            localStorage.setItem("lastClipboard", current);
-            setXClipboard((prev) => [current, ...prev]);
-
-            const savedtext = await fetch(
-              "http://localhost:5000/api/clipboard",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${JSON.parse(
-                    localStorage.getItem("clipSync-token")
-                  )}`,
-                },
-                body: JSON.stringify({ text: current }),
-              }
-            );
-          }
+          uploadCopiedText();
         } catch (err) {
-          console.warn("Clipboard access failed", err);
+          console.log("Clipboard access failed", err);
         }
       }, 1000);
     } else {
@@ -90,6 +68,44 @@ const Page = () => {
     };
   }, [sync]);
 
+  // Function to upload copied text to the server
+  const uploadCopiedText = async () => {
+    if (!document.hasFocus()) return;
+
+    const current = await navigator.clipboard.readText();
+
+    if (skipFirstRead.current) {
+      skipFirstRead.current = false;
+      if (current && current !== lastClipboard.current) {
+        lastClipboard.current = current;
+        localStorage.setItem("lastClipboard", current);
+      }
+      return;
+    }
+
+    if (
+      current &&
+      current !== lastClipboard.current &&
+      current !== pausedClipboardValue
+    ) {
+      lastClipboard.current = current;
+      localStorage.setItem("lastClipboard", current);
+      setXClipboard((prev) => [current, ...prev]);
+
+      const savedtext = await fetch(BACKEND_URL + "/api/clipboard", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${JSON.parse(
+            localStorage.getItem("clipSync-token")
+          )}`,
+        },
+        body: JSON.stringify({ text: current }),
+      });
+    }
+  };
+
+  // Function to read the clipboard value when sync is paused
   const setupPausedClipboardValue = async () => {
     try {
       const current = await navigator.clipboard.readText();
@@ -99,38 +115,79 @@ const Page = () => {
     }
   };
 
-  const fetchInitialClipboardHistory = async () => {
-    setIsFetching(true);
-    console.log("Fetching initial clipboard history...", isFetching);
-    if (user && user.driveRefreshToken) {
+  // Function to fetch initial clipboard history
+  const fetchClipboardHistory = async (
+    isPaginated = false,
+    searchQuery = ""
+  ) => {
+    if (user && user.driveRefreshToken && !isFetching) {
+      setIsFetching(true);
       try {
-        const response = await axios.get(CLIPBOARD_API_URI, {
-          headers: {
-            Authorization: `Bearer ${JSON.parse(
-              localStorage.getItem("clipSync-token")
-            )}`,
-          },
-        });
-
-        setXClipboard(response.data);
-        if (response.data.length > 0) {
-          lastClipboard.current = response[0];
-          localStorage.setItem("lastClipboard", response.data[0]);
-        }
-
-        localStorage.setItem("clipboardHistory", JSON.stringify(response.data));
-        setIsFetching(false);
-        console.log(
-          "Clipboard history fetched and saved to localStorage.",
-          isFetching
+        const response = await axios.get(
+          `${CLIPBOARD_API_URI}?pageToken=${
+            isPaginated ? nextPageToken : ""
+          }&keyword=${searchQuery || ""}`,
+          {
+            headers: {
+              Authorization: `Bearer ${JSON.parse(
+                localStorage.getItem("clipSync-token")
+              )}`,
+            },
+          }
         );
 
-        return;
+        const clipboardData = response.data.clipboardData;
+        const newToken = response.data.nextPageToken || null;
+
+        if (isPaginated) {
+          setXClipboard((prev) => [...prev, ...clipboardData]);
+        } else {
+          setXClipboard(clipboardData);
+
+          if (clipboardData && clipboardData.length > 0) {
+            lastClipboard.current = clipboardData[0];
+            localStorage.setItem(
+              "lastClipboard",
+              JSON.stringify(clipboardData[0])
+            );
+          }
+        }
+
+        setHasMore(!!newToken);
+
+        localStorage.setItem("clipboardHistory", JSON.stringify(clipboardData));
+
+        setNextPageToken(newToken || null);
       } catch (error) {
+        if (error?.response?.data?.message == "Token expired") {
+          // If the token is expired, logout the user
+          logout();
+          const router = useRouter();
+
+          router.push("/dashboard");
+
+          return;
+        }
+
+        if (localStorage.getItem("clipboardHistory")) {
+          // If fetching fails, try to load from localStorage
+          fetchFromLocalStorage();
+        } else {
+          // If localStorage is empty, clear the clipboard history
+          setXClipboard([]);
+          lastClipboard.current = "";
+          localStorage.removeItem("clipboardHistory");
+          localStorage.removeItem("lastClipboard");
+        }
         console.error("fetching clipboard history failed:", error);
+      } finally {
+        setIsFetching(false);
+        setIsRemoteLoaded(true);
       }
     }
+  };
 
+  const fetchFromLocalStorage = () => {
     //Fetching initial clipboard history from localStorage
     const saved = localStorage.getItem("clipboardHistory");
     const lastClip = localStorage.getItem("lastClipboard");
@@ -138,93 +195,67 @@ const Page = () => {
     if (lastClip && user) lastClipboard.current = lastClip;
   };
 
-  const manualRead = async () => {
-    try {
-      const current = await navigator.clipboard.readText();
-      if (current && current !== lastClipboard.current) {
-        lastClipboard.current = current;
-        localStorage.setItem("lastClipboard", current);
-        setXClipboard((prev) => [current, ...prev]);
-
-        await fetch("/api/clipboard", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${JSON.parse(
-              localStorage.getItem("clipSync-token")
-            )}`,
-          },
-          body: JSON.stringify({ text: current }),
-        });
-      }
-    } catch (err) {
-      console.warn("Manual clipboard access failed", err);
-    }
-  };
-
+  //Return of Page Component
   return (
     <div className="flex flex-row w-full h-[90vh] box-border justify-between">
-      {/* Side Bar */}
-      <div className="flex flex-col w-1/4 border-r-2 p-4">
-        <h1 className="text-4xl text-amber-400 border-b-2 border-gray-200 text-center">
-          Dashboard
-        </h1>
-
-        {/* Toggle Switch */}
-        <div className="flex items-center mt-6 justify-between">
-          <span className="mr-4 text-2xl">Sync Status</span>
-          <label className="inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={sync}
-              onChange={() => setSync((p) => !p)}
-              className="hidden"
-            />
-            <span className="w-23 h-11 bg-white rounded shadow-inner relative  ">
-              <span
-                className={`absolute top-0.5 left-0.5 w-10 h-10 text-sm font-bold bg-amber-300 rounded shadow transform transition-transform duration-300 ease-in-out  ${
-                  sync ? "translate-x-12" : "translate-x-0"
-                }  flex items-center justify-center text-black`}
-              >
-                <span>{sync ? "ON" : "OFF"}</span>
-              </span>
-            </span>
-          </label>
-        </div>
-        {/* Manual Copy */}
-        <button
-          onClick={manualRead}
-          className="mt-4 p-2 bg-blue-500 text-white hover:bg-blue-700"
-        >
-          Manual Read Clipboard
-        </button>
-
-        {/* Manual Copy */}
-        <button
-          onClick={() => {
-            console.log("Manual Sync clicked", isFetching);
-            if (!isFetching) fetchInitialClipboardHistory();
-          }}
-          className="mt-2 p-2 bg-amber-500 text-white hover:bg-amber-600 text-align-center flex items-center justify-center"
-          style={{ width: "100%" }}
-        >
-          <span>Manual Sync </span>
-          <span className={isFetching ? "ml-2 animate-spin" : "ml-2"}>
-            <FaSync />
-          </span>
-        </button>
-      </div>
+      {/* Side Bar ----------------------------------------- */}
+      <SideBar
+        setSync={setSync}
+        sync={sync}
+        manualReadFromClipboard={manualReadFromClipboard}
+        isFetching={isFetching}
+        fetchClipboardHistory={fetchClipboardHistory}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        xClipboard={xClipboard}
+        isRemoteLoaded={isRemoteLoaded}
+      />
 
       {/* Content--------------------------------------------> */}
-      <div className="flex flex-col w-3/4 items-center px-4 bg-gray-800 p-4 rounded-lg shadow-md m-4 overflow-y-auto">
-        {xClipboard.map((item, index) => (
-          <div
-            key={index}
-            className="bg-gray-700 text-white p-2 rounded mb-2 w-full"
+      <div
+        id="scrollableDiv"
+        className="flex flex-col w-3/4 items-center bg-gray-800 p-4 rounded-lg shadow-md m-4 overflow-y-auto"
+      >
+        {!isRemoteLoaded ? (
+          <LoaderScreen className="flex flex-col flex-1 rounded-lg" />
+        ) : (
+          <InfiniteScroll
+            dataLength={xClipboard.length}
+            next={() => fetchClipboardHistory(true, searchQuery)}
+            hasMore={hasMore}
+            loader={<span className="glow-text">Loading...</span>}
+            endMessage={
+              <p className="text-amber-400 align-middle text-center ">
+                You've seen all clips!
+              </p>
+            }
+            className="flex flex-col flex-1 rounded-lg"
+            style={{ height: "100%", overflowY: "auto" }}
+            scrollableTarget="scrollableDiv"
           >
-            <CopiedText item={item} />
-          </div>
-        ))}
+            {xClipboard
+              .filter((item) =>
+                item.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((item, index) => (
+                <div
+                  key={index}
+                  className=" bg-gray-700 text-white p-2 rounded mb-2 w-full "
+                >
+                  <CopiedText item={item} />
+                </div>
+              ))}
+          </InfiniteScroll>
+        )}
+        {/* //Fallback for infinite scroll */}
+        {hasMore && !isFetching && (
+          <button
+            onClick={() => fetchClipboardHistory(true, searchQuery)}
+            className="mt-4 p-2 bg-blue-500 text-white hover:bg-blue-700 rounded"
+          >
+            Load More
+          </button>
+        )}
       </div>
     </div>
   );

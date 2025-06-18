@@ -10,11 +10,11 @@ const CopiedText = ({ item }) => {
     }
   };
   return (
-    <div className="flex justify-between items-center p-2 ">
-      <span className="w-9/10">{item}</span>
+    <div className="flex justify-between items-center p-2 w-full  ">
+      <span className="w-11/12 flex-grow ">{item}</span>
       <FaCopy
         onClick={handleCopyClick}
-        className="text-blue-500 hover:text-amber-300 cursor-pointer"
+        className=" ml-8 text-blue-500 hover:text-amber-300 cursor-pointer shrink-0"
       />
     </div>
   );

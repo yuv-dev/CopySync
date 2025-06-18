@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useState, useEffect } from "react";
-import axios from "../utils/api";
+import axios from "@/utils/api";
 import { LOGIN_API_URI, CLIPBOARD_API_URI } from "@/configs/API_configs";
 
 export const AuthContext = createContext();
@@ -16,10 +16,12 @@ export const AuthProvider = ({ children }) => {
         window.location.href = res.data.authUrl;
       }
 
-      setUser(res.data.user);
+      if (res.data.user && res.data.token) {
+        setUser(res.data.user);
 
-      localStorage.setItem("clipSync-user", JSON.stringify(res.data.user));
-      localStorage.setItem("clipSync-token", JSON.stringify(res.data.token));
+        localStorage.setItem("clipSync-user", JSON.stringify(res.data.user));
+        localStorage.setItem("clipSync-token", JSON.stringify(res.data.token));
+      }
     } catch (error) {
       console.error("Login failed:", error);
     }
@@ -27,6 +29,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     console.log("Logout");
+
+    // Clear user data and tokens
     setUser(null);
     localStorage.removeItem("clipSync-user");
     localStorage.removeItem("clipSync-token");
@@ -39,7 +43,6 @@ export const AuthProvider = ({ children }) => {
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}

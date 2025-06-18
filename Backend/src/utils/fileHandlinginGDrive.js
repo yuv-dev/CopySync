@@ -20,7 +20,6 @@ exports.getClipSyncFolderId = async (drive, folderName) => {
       fields: "files(id, name)",
     });
 
-    console.log(res.data.files);
     if (res.data.files.length > 0) {
       return res.data.files[0].id;
     }
@@ -30,16 +29,35 @@ exports.getClipSyncFolderId = async (drive, folderName) => {
 };
 
 // 📂 Step 2: List .txt files from the folder
-exports.listTextFilesInFolder = async (drive, folderId) => {
+exports.listTextFilesInFolder = async (
+  drive,
+  folderId,
+  pageSize,
+  pageToken,
+  keyword
+) => {
   try {
-    const res = await drive.files.list({
-      q: `'${folderId}' in parents and mimeType='text/plain' and trashed=false`,
-      fields: "files(id, name)",
+    let query = `'${folderId}' in parents and mimeType='text/plain' and trashed=false`;
+    if (keyword) {
+      query += ` and name contains '${keyword}'`;
+    }
+
+    const response = await drive.files.list({
+      q: query,
+      orderBy: "createdTime desc",
+      fields: "files(id, name, createdTime), nextPageToken",
+      pageSize,
+      pageToken: pageToken || undefined,
     });
 
-    return res.data.files;
+
+    return response.data;
   } catch (error) {
     throw new Error("Error listing text files in the folder: " + error.message);
+    return {
+      files: [],
+      nextPageToken: null,
+    };
   }
 };
 
@@ -68,4 +86,3 @@ exports.downloadTextFile = async (drive, fileId) => {
     throw new Error("Error downloading text file: " + error.message);
   }
 };
-

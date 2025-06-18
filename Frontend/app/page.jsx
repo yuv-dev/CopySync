@@ -9,14 +9,11 @@ export default function Home() {
   const { login, user } = useContext(AuthContext);
   const router = useRouter();
 
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   if (params.get("driveAccess")) {
-  //     alert("Google Drive access granted successfully.");
-  //     // You may remove this param from URL if needed
-  //     window.history.replaceState({}, document.title, "/");
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
 
   const handleLoginSuccess = async (response) => {
     try {
@@ -36,13 +33,20 @@ export default function Home() {
       <p className="text-lg mb-4">
         Sync your clipboard across devices with ease.
       </p>
-      <GoogleLogin
-        clientId={process.env.GOOGLE_CLIENT_ID}
-        buttonText="Login with Google"
-        onSuccess={handleLoginSuccess}
-        onFailure={(error) => console.error("Login failed:", error)}
-        cookiePolicy={"single_host_origin"}
-      />
+      {user ? (
+        <>
+        <p className="text-amber-400 mb-4">Welcome back, {user.name}!</p>
+        <p> Redirecting to DashBoard  </p>
+        </>
+      ) : (
+        <GoogleLogin
+          clientId={process.env.GOOGLE_CLIENT_ID}
+          buttonText="Login with Google"
+          onSuccess={handleLoginSuccess}
+          onFailure={(error) => console.error("Login failed:", error)}
+          cookiePolicy={"single_host_origin"}
+        />
+      )}
     </div>
   );
 }

@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.glow-text {
+  animation: glow 1.5s infinite;
+}
+
+@keyframes glow {
+  from,
+  to {
+    box-shadow: 0 0 10px gold;
+  }
+  50% {
+    box-shadow: 0 0 20px gold;
+  }
+}
+
+.device-info{
+  color: oklch(82.8% 0.189 84.429);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0.5rem 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}

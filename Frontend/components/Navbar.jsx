@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   FaUser,
   FaUserAlt,
@@ -30,10 +31,26 @@ export default function Navbar() {
   return (
     <nav className="flex items-center justify-between h-[60px] p-4 text-black bg-amber-300 shadow-amber-50 border-b border-gray-700">
       <div className="flex items-center">
-        <span className="ml-2 text-xl font-bold">ClipboardSync</span>
+        <span className="ml-2 text-xl font-bold">
+          Clipboard<span className="text-3xl">Sync</span>
+        </span>
+      </div>
+      <div className="flex items-end space-x-4 gap-1 px-4  w-[400px] justify-center">
+        <Link
+          href="/dashboard"
+          className="text-lg font-semibold   hover:bg-amber-400 p-4"
+        >
+          Dashboard
+        </Link>
+        <Link
+          href="/dashboard/device-manager"
+          className="text-lg font-semibold   hover:bg-amber-400 p-4"
+        >
+          Device Manager
+        </Link>
       </div>
       {user ? (
-        <div className="flex items-center align-center">
+        <div className="flex items-center align-center  justify-end ">
           {user?.picture ? (
             // <Image
             //   src={user?.picture}

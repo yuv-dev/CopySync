@@ -20,15 +20,16 @@ app.use(compression());
 
 const authRoutes = require("./routes/authRoutes");
 const clipboardRoutes = require("./routes/clipboardRoutes");
+const deviceRoutes = require("./routes/deviceRoutes");
 
 // Define your routes here
 app.use("/api/auth", authRoutes);
 app.use("/api/clipboard", clipboardRoutes);
+app.use("/api/devices", deviceRoutes);
 
 // Set up routes
 app.use("/", (req, res) => {
- 
- res.write("App Connected\n");
+  res.write("App Connected\n");
   res.write("CopySync");
   res.end();
 }); // Use the routes defined in routes.js

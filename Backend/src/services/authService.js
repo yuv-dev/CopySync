@@ -24,7 +24,6 @@ exports.googleLogin = async (credential) => {
     idToken: credential,
     audience: GOOGLE_CLIENT_ID,
   });
-
   const { email, name, picture, sub: googleId } = ticket.getPayload();
 
   let user = await User.findOne({ email });
@@ -86,7 +85,7 @@ exports.registerUser = async ({ name, email, password }) => {
       throw new Error("Error hashing password");
     }
     const user = await User.create({ name, email, password: hashedPassword });
-    console.log("User created successfully");
+    console.log("User created successfully", user);
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     return { token, user };
   } catch (err) {

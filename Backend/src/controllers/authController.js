@@ -1,4 +1,5 @@
 const AuthService = require("../services/authService");
+const {FRONTEND_URL} = require("../config/env");
 
 exports.registerUser = async (req, res) => {
   try {
@@ -33,9 +34,8 @@ exports.googleLogin = async (req, res) => {
 
 exports.googleDriveCallback = async (req, res) => {
   try {
-    console.log("Attempting to get Google Drive callback");
      await AuthService.googleDriveCallback(req);
-    res.redirect("http://localhost:3000/dashboard");
+    res.redirect(FRONTEND_URL + "/dashboard");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

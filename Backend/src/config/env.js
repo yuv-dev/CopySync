@@ -7,4 +7,5 @@ module.exports = {
   JWT_SECRET: process.env.JWT_SECRET,
   GOOGLE_REDIRECT_URI: "http://localhost:5000/api/auth/google/callback",
   FRONTEND_URL: "http://localhost:3000",
+  BACKEND_URL: "http://localhost:5000",
 };
