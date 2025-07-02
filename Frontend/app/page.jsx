@@ -17,7 +17,7 @@ export default function Home() {
 
   const handleLoginSuccess = async (response) => {
     try {
-      console.log("Login successful:", response);
+      console.log("Login Credential Recieved:", response);
       await login(response.credential);
     } catch (error) {
       console.error("Login error:", error);
@@ -35,16 +35,13 @@ export default function Home() {
       </p>
       {user ? (
         <>
-        <p className="text-amber-400 mb-4">Welcome back, {user.name}!</p>
-        <p> Redirecting to DashBoard  </p>
+          <p className="text-amber-400 mb-4">Welcome back, {user.name}!</p>
+          <p> Redirecting to DashBoard </p>
         </>
       ) : (
         <GoogleLogin
-          clientId={process.env.GOOGLE_CLIENT_ID}
-          buttonText="Login with Google"
           onSuccess={handleLoginSuccess}
-          onFailure={(error) => console.error("Login failed:", error)}
-          cookiePolicy={"single_host_origin"}
+          onError={(error) => console.error("Login failed:", error)}
         />
       )}
     </div>

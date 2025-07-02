@@ -10,8 +10,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credential) => {
     try {
+      console.log("Login credential:", credential);
+      console.log("Login API URI:", LOGIN_API_URI); 
       const res = await axios.post(LOGIN_API_URI, { credential });
       // Step: redirect to Google Drive consent screen
+      console.log("Login response:", res.data);
       if (res.data.authUrl) {
         window.location.href = res.data.authUrl;
       }
@@ -24,6 +27,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Login failed:", error);
+      localStorage.removeItem("clipSync-user");
+      localStorage.removeItem("clipSync-token");
     }
   };
 

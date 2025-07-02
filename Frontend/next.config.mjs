@@ -8,6 +8,12 @@ const nextConfig = {
       },
     ];
   },
+  allowedDevOrigins: [
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "https://clipsync-frontend.loca.lt",
+    "https://clipsync-dev.loca.lt",
+  ],
 };
 
 export default nextConfig;

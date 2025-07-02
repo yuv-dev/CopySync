@@ -21,6 +21,7 @@ const uploadOrUpdateFile = async (
           body: bufferStream,
         },
       });
+      console.log("File updated successfully:", updateResponse);
       return updateResponse.data;
     }
 

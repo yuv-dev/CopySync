@@ -1,18 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   getAllDeviceList,
   registerDevice,
   unregisterDevice,
 } from "@/utils/devicesutils";
+import { AuthContext } from "@/context/AuthContext";
 // This page allows users to manage their devices connected to ClipSync.
 
 const page = () => {
   const [devices, setDevices] = useState([]);
   const [thisDevice, setThisDevice] = useState(null);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
+    if (!user) return;
+
     setThisDevice(localStorage.getItem("deviceId"));
     if (!thisDevice) {
       registerDevice();
@@ -21,6 +25,7 @@ const page = () => {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     const fetchDevices = async () => {
       const response = await getAllDeviceList();
       setDevices(response || []);

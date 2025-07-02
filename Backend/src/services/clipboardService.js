@@ -23,15 +23,23 @@ exports.saveClipboard = async (req) => {
     (content = req.body.text)
   );
 
+  console.log("Drive upload result:", driveResult);
+
+  // // Emit to all other devices
+  // global.io.to(userId).emit("clipboard-update", {
+  //   id: driveResult._id,
+  //   text: driveResult.text,
+  //   createdAt: driveResult.createdAt,
+  //   deviceId, // sender's deviceId
+  // });
+
+
   return { filename, driveFileId: driveResult.id };
 };
-
 
 //Get the online stored clipboard history from Google Drive
 exports.getClipboardHistoryFromDrive = async (req) => {
   try {
-
-
     const refresh_token = req.user.driveRefreshToken;
     const pageSize = parseInt(req.query.limit) || 10;
     let { pageToken, keyword } = req.query;
@@ -47,8 +55,6 @@ exports.getClipboardHistoryFromDrive = async (req) => {
     } else {
       keyword = "";
     }
-
-
 
     const oauth2Client = new google.auth.OAuth2(
       GOOGLE_CLIENT_ID,

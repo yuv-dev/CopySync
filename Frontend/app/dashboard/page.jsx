@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useContext } from "react";
 import axios from "axios";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "@/context/AuthContext";
 import { BACKEND_URL, CLIPBOARD_API_URI } from "@/configs/API_configs";
 
 import CopiedText from "@/components/CopiedText";
@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 
 import { manualReadFromClipboard } from "@/utils/manualReadFromClipboard";
 import { registerDevice } from "@/utils/devicesutils";
+import BottomBar from "@/components/BottomBar";
+import { socket } from "@/utils/socket";
 
 // This page is the main dashboard for the ClipSync application
 const Page = () => {
@@ -30,9 +32,30 @@ const Page = () => {
   const [isRemoteLoaded, setIsRemoteLoaded] = useState(false);
 
   useEffect(() => {
+    
     fetchFromLocalStorage();
     fetchClipboardHistory();
     registerDevice();
+
+    if (user) {
+      socket.emit("register-device", { userId: user.id });
+    }
+
+    const currentDeviceId = localStorage.getItem("deviceId");
+    if (!currentDeviceId) {
+      return;
+    }
+    socket.on("clipboard-update", (data) => {
+      if (data.deviceId !== currentDeviceId) {
+        // Push new text to UI (e.g., add to clipboard state)
+        setXClipboard((prev) => [data.text, ...prev]);
+        lastClipboard.current = data.text;
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [user]);
 
   useEffect(() => {
@@ -164,7 +187,7 @@ const Page = () => {
           logout();
           const router = useRouter();
 
-          router.push("/dashboard");
+          router.push("/");
 
           return;
         }
@@ -211,13 +234,30 @@ const Page = () => {
         isRemoteLoaded={isRemoteLoaded}
       />
 
+      {/* BottomBar--------------------------------------------- */}
+      <BottomBar
+        sync={sync}
+        setSync={setSync}
+        manualReadFromClipboard={() =>
+          manualReadFromClipboard(setXClipboard, lastClipboard)
+        }
+        fetchClipboardHistory={fetchClipboardHistory}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        xClipboard={xClipboard}
+      />
+
       {/* Content--------------------------------------------> */}
       <div
         id="scrollableDiv"
-        className="flex flex-col w-3/4 items-center bg-gray-800 p-4 rounded-lg shadow-md m-4 overflow-y-auto"
+        className="flex flex-col w-full md:w-3/4 items-center bg-gray-800 p-4 rounded-lg shadow-md  overflow-y-auto"
       >
         {!isRemoteLoaded ? (
-          <LoaderScreen className="flex flex-col flex-1 rounded-lg" />
+          <LoaderScreen
+            className="flex flex-col flex-1 rounded-lg"
+            activeUser={user}
+            xClipboard={xClipboard}
+          />
         ) : (
           <InfiniteScroll
             dataLength={xClipboard.length}

@@ -4,11 +4,16 @@ const compression = require("compression");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cors = require("cors");
+const http = require("http");
+
+const { setupSocket } = require("./socket");
+
 
 const connectDB = require("./db");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+
 
 // Middleware
 app.use(cors()); // Enable Cross-Origin requests
@@ -17,6 +22,7 @@ app.use(morgan("dev")); // Log requests to console
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
+
 
 const authRoutes = require("./routes/authRoutes");
 const clipboardRoutes = require("./routes/clipboardRoutes");
@@ -36,6 +42,9 @@ app.use("/", (req, res) => {
 
 connectDB(); // Connect to MongoDB
 
+setupSocket(server); // Set up WebSocket server
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

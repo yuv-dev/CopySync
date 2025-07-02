@@ -11,6 +11,7 @@ exports.postClipboard = async (req, res) => {
 
 exports.getClipboardHistory = async (req, res) => {
 
+  console.log("Fetching clipboard history from Google Drive...", req.body); 
   try {
     const items = await ClipboardService.getClipboardHistoryFromDrive(req);
     

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { useState, useEffect } from "react";
 import { FaSearch, FaSync } from "react-icons/fa";
 
 const SideBar = ({
@@ -15,19 +14,19 @@ const SideBar = ({
   xClipboard,
   isRemoteLoaded,
 }) => {
-  const [offlineData, setOfflineData] = useState([]);
+  // const [offlineData, setOfflineData] = useState([]);
   const route = useRouter();
 
-  useEffect(() => {
-    // Safe to use localStorage inside useEffect (runs only on client)
-    const saved = localStorage.getItem("clipboardHistory");
-    if (saved) {
-      setOfflineData(JSON.parse(saved));
-    }
-  }, []);
+  // useEffect(() => {
+  //   // Safe to use localStorage inside useEffect (runs only on client)
 
+  //   const saved = localStorage.getItem("clipboardHistory");
+  //   if (saved) {
+  //     setOfflineData(JSON.parse(saved));
+  //   }
+  // }, []);
   return (
-    <div className="flex flex-col w-1/4 border-r-2 p-4">
+    <div className="hidden md:flex md:w-1/4  flex-col w-1/4 border-r-2 p-4">
       <h1 className="text-4xl text-amber-400 border-b-2 border-gray-200 text-center">
         Dashboard
       </h1>
@@ -104,18 +103,14 @@ const SideBar = ({
           ? xClipboard.filter((item) =>
               item.toLowerCase().includes(searchQuery.toLowerCase())
             ).length
-          : offlineData
-          ? offlineData.filter((item) =>
-              item.toLowerCase().includes(searchQuery.toLowerCase())
-            ).length
           : 0}
       </span>
 
       {/* Device Page Routing */}
       <Link href="/dashboard/device-manager">
-      <button className="w-full mt-6 p-2 bg-blue-500 text-white hover:bg-blue-700">
-        Synced Devices
-      </button>
+        <button className="w-full mt-6 p-2 bg-blue-500 text-white hover:bg-blue-700">
+          Synced Devices
+        </button>
       </Link>
     </div>
   );

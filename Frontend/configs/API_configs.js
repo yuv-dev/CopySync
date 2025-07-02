@@ -1,7 +1,7 @@
 module.exports = {
-  LOGIN_API_URI: "http://localhost:5000/api/auth/google-login",
-  CLIPBOARD_API_URI: "http://localhost:5000/api/clipboard",
-  DEVICE_API_URI: "http://localhost:5000/api/devices",
-  FRONTEND_URL: "http://localhost:3000",
-  BACKEND_URL: "http://localhost:5000",
+  LOGIN_API_URI: "https://clipsync-backend.loca.lt/api/auth/google-login",
+  CLIPBOARD_API_URI: "https://clipsync-backend.loca.lt/api/clipboard",
+  DEVICE_API_URI: "https://clipsync-backend.loca.lt/api/devices",
+  FRONTEND_URL: "https://clipsync-frontend.loca.lt",
+  BACKEND_URL: "https://clipsync-backend.loca.lt",
 };
