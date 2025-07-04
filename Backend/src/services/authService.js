@@ -85,7 +85,6 @@ exports.registerUser = async ({ name, email, password }) => {
       throw new Error("Error hashing password");
     }
     const user = await User.create({ name, email, password: hashedPassword });
-    console.log("User created successfully", user);
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     return { token, user };
   } catch (err) {
@@ -101,7 +100,6 @@ exports.loginUser = async ({ email, password }) => {
     if (!user) {
       throw new Error("Invalid credentials");
     }
-    console.log("User found:", user);
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       throw new Error("Invalid credentials");

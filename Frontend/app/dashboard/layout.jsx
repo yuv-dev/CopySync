@@ -3,7 +3,7 @@ import React from "react";
 
 const layout = ({ children }) => {
   return (
-    <div className="box-border">
+    <div className="box-border bg-black">
       <Navbar />
       {children}
     </div>

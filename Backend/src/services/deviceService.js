@@ -52,3 +52,4 @@ exports.getAllDevices = async (req) => {
     throw new Error("Error fetching devices: " + error.message);
   }
 };
+

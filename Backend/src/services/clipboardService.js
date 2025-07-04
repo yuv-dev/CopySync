@@ -23,16 +23,14 @@ exports.saveClipboard = async (req) => {
     (content = req.body.text)
   );
 
-  console.log("Drive upload result:", driveResult);
-
-  // // Emit to all other devices
-  // global.io.to(userId).emit("clipboard-update", {
-  //   id: driveResult._id,
-  //   text: driveResult.text,
-  //   createdAt: driveResult.createdAt,
-  //   deviceId, // sender's deviceId
-  // });
-
+  const userId = req.user._id;
+  const deviceId = req.body.deviceId;
+  const createdAt = new Date();
+  // Emit to all other devices
+  global.io.to(userId).emit("clipboard-update", {
+    text: req.body.text,
+    deviceId, // sender's deviceId
+  });
 
   return { filename, driveFileId: driveResult.id };
 };

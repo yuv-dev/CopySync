@@ -31,9 +31,9 @@ exports.uploadClipboardToDrive = async (filename, refresh_token, content) => {
       folderId,
       filename,
       content,
-      existingFileId
+      storedFileId=existingFileId
     );
-
+    console.log("File uploaded successfully:", file);
     return file;
   } catch (err) {
     console.error("Error uploading to Google Drive:", err);

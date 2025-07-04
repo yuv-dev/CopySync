@@ -16,7 +16,6 @@ export default function Navbar() {
     try {
       await logout();
       router.push("/");
-      console.log("Logout successful");
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -49,10 +48,6 @@ export default function Navbar() {
           >
             Device Manager
           </Link>
-        </div>
-
-        <div>
-          <span>{activeUser.current?.name}</span>
         </div>
 
         {/* User Info & Logout */}

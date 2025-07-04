@@ -18,7 +18,8 @@ const LoaderScreen = ({ activeUser, xClipboard }) => {
         ))}
       </div>
     );
-  } else {
+  } 
+  else {
     return (
       <div className="flex flex-col flex-1 items-center justify-center h-full w-full">
         {activeUser ? (

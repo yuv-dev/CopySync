@@ -26,7 +26,6 @@ exports.googleLogin = async (req, res) => {
     //   email: "yuvr@gmail.com"
     // }
 
-    console.log("Google Login Request Body:", req.body);
     const result = await AuthService.googleLogin(req.body.credential);
     res.status(200).json(result);
   } catch (err) {

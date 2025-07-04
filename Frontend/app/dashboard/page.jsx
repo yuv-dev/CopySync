@@ -12,9 +12,16 @@ import LoaderScreen from "@/components/LoaderScreen";
 import { useRouter } from "next/navigation";
 
 import { manualReadFromClipboard } from "@/utils/manualReadFromClipboard";
-import { registerDevice } from "@/utils/devicesutils";
+import { getDeviceId, registerDevice } from "@/utils/devicesutils";
 import BottomBar from "@/components/BottomBar";
-import { socket } from "@/utils/socket";
+// import { socket } from "@/utils/socket";
+
+import { io } from "socket.io-client";
+const socket = io("http://localhost:5000", {
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 2000,
+});
 
 // This page is the main dashboard for the ClipSync application
 const Page = () => {
@@ -30,30 +37,53 @@ const Page = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [nextPageToken, setNextPageToken] = useState(null);
   const [isRemoteLoaded, setIsRemoteLoaded] = useState(false);
+  const [devices, setDevices] = useState([]);
 
   useEffect(() => {
-    
     fetchFromLocalStorage();
-    fetchClipboardHistory();
     registerDevice();
+    fetchClipboardHistory();
+    const currentDeviceId = getDeviceId();
 
-    if (user) {
-      socket.emit("register-device", { userId: user.id });
-    }
-
-    const currentDeviceId = localStorage.getItem("deviceId");
-    if (!currentDeviceId) {
+    if (!user || !currentDeviceId) {
       return;
     }
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    // Emit online-device event with userId and deviceId
+    socket.emit("online-device", {
+      userId: user._id,
+      deviceId: currentDeviceId,
+    });
+
+    // Listen for real-time device list updates
+    socket.on("device-list-update", (deviceList) => {
+      if (!deviceList || deviceList.length === 0) {
+        console.warn("No devices found in device-list-update");
+      }
+      setDevices(deviceList);
+    });
+
+    // Listen for clipboard updates
     socket.on("clipboard-update", (data) => {
+      console.log("Received clipboard update:", data);
+
       if (data.deviceId !== currentDeviceId) {
-        // Push new text to UI (e.g., add to clipboard state)
         setXClipboard((prev) => [data.text, ...prev]);
-        lastClipboard.current = data.text;
+        lastClipboard.current = data.text; // Update the lastClipboard reference
+        //Add logic her to write to clipboard the current text
       }
     });
 
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
     return () => {
+      socket.off("clipboard-update");
+      socket.off("device-list-update");
       socket.disconnect();
     };
   }, [user]);
@@ -76,14 +106,15 @@ const Page = () => {
     if (sync) {
       skipFirstRead.current = true;
       interval = setInterval(async () => {
+        //Read clipboard every second
         try {
-          uploadCopiedText();
+          uploadCopiedText(); // Upload copied text to the server
         } catch (err) {
           console.log("Clipboard access failed", err);
         }
       }, 1000);
     } else {
-      setupPausedClipboardValue();
+      setupPausedClipboardValue(); // Read the clipboard value when sync is paused and prevent uploading to server
     }
 
     return () => {
@@ -98,6 +129,7 @@ const Page = () => {
     const current = await navigator.clipboard.readText();
 
     if (skipFirstRead.current) {
+      // Skip the first read to avoid initial empty clipboard value
       skipFirstRead.current = false;
       if (current && current !== lastClipboard.current) {
         lastClipboard.current = current;
@@ -107,14 +139,15 @@ const Page = () => {
     }
 
     if (
-      current &&
-      current !== lastClipboard.current &&
+      current && // Check if the current clipboard value is not empty
+      current !== lastClipboard.current && // Check if the current clipboard value is different from the last one
       current !== pausedClipboardValue
     ) {
       lastClipboard.current = current;
       localStorage.setItem("lastClipboard", current);
       setXClipboard((prev) => [current, ...prev]);
 
+      const deviceId = getDeviceId();
       const savedtext = await fetch(BACKEND_URL + "/api/clipboard", {
         method: "POST",
         headers: {
@@ -123,7 +156,7 @@ const Page = () => {
             localStorage.getItem("clipSync-token")
           )}`,
         },
-        body: JSON.stringify({ text: current }),
+        body: JSON.stringify({ text: current, deviceId: deviceId }),
       });
     }
   };
@@ -143,6 +176,7 @@ const Page = () => {
     isPaginated = false,
     searchQuery = ""
   ) => {
+    console.log("Fetching clipboard history...", isPaginated, searchQuery);
     if (user && user.driveRefreshToken && !isFetching) {
       setIsFetching(true);
       try {
@@ -232,6 +266,7 @@ const Page = () => {
         setSearchQuery={setSearchQuery}
         xClipboard={xClipboard}
         isRemoteLoaded={isRemoteLoaded}
+        devices={devices}
       />
 
       {/* BottomBar--------------------------------------------- */}

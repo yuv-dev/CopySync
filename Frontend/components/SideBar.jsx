@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { FaSearch, FaSync } from "react-icons/fa";
+import SyncedDevices from "./SyncedDevices";
 
 const SideBar = ({
   setSync,
@@ -13,9 +14,11 @@ const SideBar = ({
   setSearchQuery,
   xClipboard,
   isRemoteLoaded,
+  devices,
 }) => {
   // const [offlineData, setOfflineData] = useState([]);
   const route = useRouter();
+  const [showdevices, setShowDevices] = React.useState(false);
 
   // useEffect(() => {
   //   // Safe to use localStorage inside useEffect (runs only on client)
@@ -66,7 +69,6 @@ const SideBar = ({
         {/* Manual Sync */}
         <button
           onClick={() => {
-            console.log("Manual Sync clicked", isFetching);
             if (!isFetching) fetchClipboardHistory();
           }}
           className="mt-2 p-2 bg-amber-500 text-white hover:bg-amber-600 text-align-center flex items-center justify-center"
@@ -107,11 +109,15 @@ const SideBar = ({
       </span>
 
       {/* Device Page Routing */}
-      <Link href="/dashboard/device-manager">
-        <button className="w-full mt-6 p-2 bg-blue-500 text-white hover:bg-blue-700">
-          Synced Devices
-        </button>
-      </Link>
+      <button
+        onClick={() => {
+          setShowDevices((prev) => !prev);
+        }}
+        className="w-full mt-6 p-2 bg-blue-500 text-white hover:bg-blue-700"
+      >
+        Synced Devices
+      </button>
+      {showdevices && <SyncedDevices devices={devices} />}
     </div>
   );
 };

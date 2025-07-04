@@ -12,7 +12,7 @@ const nextConfig = {
     "http://localhost:3000",
     "http://localhost:5000",
     "https://clipsync-frontend.loca.lt",
-    "https://clipsync-dev.loca.lt",
+    "https://clipsync-backend.loca.lt",
   ],
 };
 
