@@ -26,6 +26,7 @@ exports.saveClipboard = async (req) => {
   const userId = req.user._id;
   const deviceId = req.body.deviceId;
   const createdAt = new Date();
+  
   // Emit to all other devices
   global.io.to(userId).emit("clipboard-update", {
     text: req.body.text,

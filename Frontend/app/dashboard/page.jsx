@@ -14,14 +14,7 @@ import { useRouter } from "next/navigation";
 import { manualReadFromClipboard } from "@/utils/manualReadFromClipboard";
 import { getDeviceId, registerDevice } from "@/utils/devicesutils";
 import BottomBar from "@/components/BottomBar";
-// import { socket } from "@/utils/socket";
-
-import { io } from "socket.io-client";
-const socket = io("http://localhost:5000", {
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 2000,
-});
+import { socket } from "@/utils/socket";
 
 // This page is the main dashboard for the ClipSync application
 const Page = () => {
@@ -51,12 +44,12 @@ const Page = () => {
 
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
-    });
 
-    // Emit online-device event with userId and deviceId
-    socket.emit("online-device", {
-      userId: user._id,
-      deviceId: currentDeviceId,
+      // Emit online-device event with userId and deviceId
+      socket.emit("online-device", {
+        userId: user._id, 
+        deviceId: currentDeviceId,
+      });
     });
 
     // Listen for real-time device list updates
@@ -69,7 +62,9 @@ const Page = () => {
 
     // Listen for clipboard updates
     socket.on("clipboard-update", (data) => {
+      console.log(data, lastClipboard.current, currentDeviceId);
       console.log("Received clipboard update:", data);
+      if (data.text && data.text === lastClipboard.current) return;
 
       if (data.deviceId !== currentDeviceId) {
         setXClipboard((prev) => [data.text, ...prev]);
@@ -176,7 +171,6 @@ const Page = () => {
     isPaginated = false,
     searchQuery = ""
   ) => {
-    console.log("Fetching clipboard history...", isPaginated, searchQuery);
     if (user && user.driveRefreshToken && !isFetching) {
       setIsFetching(true);
       try {
