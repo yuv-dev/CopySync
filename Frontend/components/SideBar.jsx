@@ -13,21 +13,12 @@ const SideBar = ({
   searchQuery,
   setSearchQuery,
   xClipboard,
-  isRemoteLoaded,
   devices,
 }) => {
   // const [offlineData, setOfflineData] = useState([]);
   const route = useRouter();
   const [showdevices, setShowDevices] = React.useState(false);
 
-  // useEffect(() => {
-  //   // Safe to use localStorage inside useEffect (runs only on client)
-
-  //   const saved = localStorage.getItem("clipboardHistory");
-  //   if (saved) {
-  //     setOfflineData(JSON.parse(saved));
-  //   }
-  // }, []);
   return (
     <div className="hidden md:flex md:w-1/4 h-full flex-col w-1/4 border-r-2 p-4 gap-4 overflow-y-auto">
       <h1 className="text-4xl text-amber-400 border-b-2 border-gray-200 text-center">
@@ -45,9 +36,9 @@ const SideBar = ({
             className="hidden"
           />
           {/* Custom Toggle Switch button*/}
-          <span className="w-23 h-11 bg-white rounded shadow-inner relative  ">
+          <span className="w-23 h-8 bg-white rounded shadow-inner relative  ">
             <span
-              className={`absolute top-0.5 left-0.5 w-10 h-10 text-sm font-bold bg-amber-300 rounded shadow transform transition-transform duration-300 ease-in-out  ${
+              className={`absolute top-0.5 left-0.5 w-10 h-7 text-sm font-bold bg-amber-300 rounded shadow transform transition-transform duration-300 ease-in-out  ${
                 sync ? "translate-x-12" : "translate-x-0"
               }  flex items-center justify-center text-black`}
             >
@@ -82,11 +73,11 @@ const SideBar = ({
           </span>
           {/* Clip Counter */}
           <span className="text-black text-lg font-bold border-2 px-2 ml-2 rounded">
-            {isRemoteLoaded
-              ? xClipboard.filter((item) =>
-                  item.toLowerCase().includes(searchQuery.toLowerCase())
-                ).length
-              : 0}
+            {
+              xClipboard?.filter((item) =>
+                item.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length
+            }
           </span>
         </button>
       </div>
@@ -118,7 +109,7 @@ const SideBar = ({
         >
           Synced Devices
         </button>
-        {showdevices && <SyncedDevices devices={devices} />}
+        {<SyncedDevices devices={devices} />}
       </div>
     </div>
   );

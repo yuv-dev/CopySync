@@ -45,7 +45,7 @@ exports.listTextFilesInFolder = async (
     const response = await drive.files.list({
       q: query,
       orderBy: "createdTime desc",
-      fields: "files(id, name, createdTime), nextPageToken",
+      fields: "files(id, name, properties, createdTime), nextPageToken",
       pageSize,
       pageToken: pageToken || undefined,
     });
@@ -53,7 +53,6 @@ exports.listTextFilesInFolder = async (
 
     return response.data;
   } catch (error) {
-    throw new Error("Error listing text files in the folder: " + error.message);
     return {
       files: [],
       nextPageToken: null,

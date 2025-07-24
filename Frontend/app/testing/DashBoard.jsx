@@ -12,19 +12,17 @@ import LoaderScreen from "@/components/LoaderScreen";
 import { useRouter } from "next/navigation";
 
 import { manualReadFromClipboard } from "@/utils/manualReadFromClipboard";
-import { registerDevice } from "@/utils/devicesutils";
+import { getDeviceId, registerDevice } from "@/utils/devicesutils";
 import BottomBar from "@/components/BottomBar";
 import { socket } from "@/utils/socket";
-import { v4 as uuidv4 } from "uuid";
 
 // This page is the main dashboard for the ClipSync application
 const Page = () => {
   const { user, logout } = useContext(AuthContext);
-  const deviceId = useRef(null);
+  const [sync, setSync] = useState(true);
   const lastClipboard = useRef("");
   const skipFirstRead = useRef(true);
 
-  const [sync, setSync] = useState(true);
   const [xClipboard, setXClipboard] = useState([]); // Clipboard items fetched from the server
   const [isFetching, setIsFetching] = useState(false); // Flag to indicate if data is being fetched
   const [searchQuery, setSearchQuery] = useState(""); // Search query for filtering clipboard items
@@ -32,72 +30,55 @@ const Page = () => {
   const [devices, setDevices] = useState([]); // List of devices connected to the user
 
   useEffect(() => {
-    socket.connect();
-
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.disconnect(); // Only if app unmounts
-    };
-  }, []); // Empty dependency array ensures that socket is actually connected only once
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!user) return;
-
-    const getDeviceId = () => {
-      let deviceId = localStorage.getItem("deviceId");
-      if (!deviceId) {
-        deviceId = uuidv4();
-        localStorage.setItem("deviceId", deviceId);
-      }
-      return deviceId;
-    };
-    deviceId.current = getDeviceId();
     fetchFromLocalStorage();
     const init = async () => {
       if (!user) return;
       await registerDevice();
       await fetchClipboardHistory();
-
-      console.log(deviceId.current, " 71 page");
-      if (user && socket.connected && deviceId.current) {
-        socket.emit("online-device", {
-          userId: user._id,
-          deviceId: deviceId.current,
-        });
-        console.log("Socket Emitted on Page Load:", socket.id);
-      }
-
-      socket.on("device-list-update", (deviceList) => {
-        console.log("Received device list update:", deviceList);
-        // Update the devices state with the received device list
-        setDevices(deviceList || []);
-      });
-
-      socket.on("clipboard-update", (data) => {
-        console.log("Received clipboard update:", data);
-        if (data.text && data.text === lastClipboard.current) return;
-        if (data.deviceId !== deviceId.current) {
-          lastClipboard.current = data.text;
-          setXClipboard((prev) => [data.text, ...prev]);
-        }
-      });
     };
-
     if (navigator.onLine) init();
+    const currentDeviceId = getDeviceId();
 
+    if (!user || !currentDeviceId) {
+      return;
+    }
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+
+      // Emit online-device event with userId and deviceId
+      socket.emit("online-device", {
+        userId: user._id,
+        deviceId: currentDeviceId,
+      });
+    });
+
+    // Listen for real-time device list updates
+    socket.on("device-list-update", (deviceList) => {
+      if (!deviceList || deviceList.length === 0) {
+        console.warn("No devices found in device-list-update");
+      }
+      setDevices(deviceList);
+    });
+
+    // Listen for clipboard updates
+    socket.on("clipboard-update", (data) => {
+      if (data.text && data.text === lastClipboard.current) return;
+
+      if (data.deviceId !== currentDeviceId) {
+        setXClipboard((prev) => [data.text, ...prev]);
+        lastClipboard.current = data.text; // Update the lastClipboard reference
+        //Add logic her to write to clipboard the current text
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
     return () => {
-      socket.off("device-list-update");
       socket.off("clipboard-update");
+      socket.off("device-list-update");
+      socket.disconnect();
     };
   }, [user]);
 
@@ -121,57 +102,50 @@ const Page = () => {
       interval = setInterval(async () => {
         //Read clipboard every second
         try {
+          console.log("Reading clipboard...");
           uploadCopiedText(); // Upload copied text to the server
         } catch (err) {
           console.log("Clipboard access failed", err);
         }
       }, 1000);
-    } else {
-      console.log("Reading clipboard...X", lastClipboard.current);
     }
-    // else {
-    //   const storePauseValue = async () => {
-    //     try {
-    //       const current = await navigator.clipboard.readText();
-    //       syncpausedValue.current = current.trim();
-    //     } catch (err) {
-    //       console.warn("Clipboard read for paused state failed", err);
-    //     }
-    //   };
-    //   storePauseValue();
-    // }
 
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [sync]);
 
-  /********************************************************************************************** */
   // Function to upload copied text to the server
   const uploadCopiedText = async () => {
     if (!document.hasFocus()) return;
-    try {
-      const current = (await navigator.clipboard.readText()).trim();
-      if (skipFirstRead.current) {
-        // Skip the first read to avoid initial empty clipboard value
-        skipFirstRead.current = false;
-        if (current && current !== lastClipboard.current) {
-          lastClipboard.current = current;
-          localStorage.setItem("lastClipboard", current);
-        }
-        return;
-      }
 
-      if (
-        !current || // Check if the current clipboard value is not empty
-        current === lastClipboard.current
-      ) {
-        return;
+    const current = (await navigator.clipboard.readText()).trim();
+    if (skipFirstRead.current) {
+      // Skip the first read to avoid initial empty clipboard value
+      skipFirstRead.current = false;
+      if (current && current !== lastClipboard.current) {
+        console.log(
+          "Skipping first read, setting lastClipboard to:",
+          current,
+          lastClipboard.current
+        );
+        lastClipboard.current = current;
+        localStorage.setItem("lastClipboard", current);
       }
+      return;
+    }
+
+    if (
+      current && // Check if the current clipboard value is not empty
+      current !== lastClipboard.current
+      // && // Check if the current clipboard value is different from the last one
+      // current !== pausedClipboardValue
+    ) {
       lastClipboard.current = current;
       localStorage.setItem("lastClipboard", current);
       setXClipboard((prev) => [current, ...prev]);
 
+      const deviceId = getDeviceId();
       const savedtext = await fetch(BACKEND_URL + "/api/clipboard", {
         method: "POST",
         headers: {
@@ -180,10 +154,9 @@ const Page = () => {
             localStorage.getItem("clipSync-token")
           )}`,
         },
-        body: JSON.stringify({ text: current, deviceId: deviceId.current }),
+        body: JSON.stringify({ text: current, deviceId: deviceId }),
       });
-    } catch (error) {
-      console.error("Error uploading copied text:", error);
+      console.log("Saved text to server:", savedtext);
     }
   };
 
@@ -208,11 +181,7 @@ const Page = () => {
           }
         );
 
-        console.log("Fetched clipboard history:", response);
-        console.log("Fetched clipboard history:", response.data.clipboardData);
-        const clipboardData = response.data.clipboardData.map(
-          (item) => item.content
-        );
+        const clipboardData = response.data.clipboardData;
         const newToken = response.data.nextPageToken || null;
 
         if (isPaginated) {
@@ -267,8 +236,6 @@ const Page = () => {
     if (saved) setXClipboard(JSON.parse(saved));
     if (lastClip && user) lastClipboard.current = lastClip;
   };
-
-  /********************************************************************************************** */
 
   //Return of Page Component
   return (

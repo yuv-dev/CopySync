@@ -3,9 +3,9 @@ const ClipboardService = require("../services/clipboardService");
 exports.postClipboard = async (req, res) => {
   try {
     const item = await ClipboardService.saveClipboard(req);
-    res.status(201).json(item);
+    return res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -13,10 +13,10 @@ exports.getClipboardHistory = async (req, res) => {
 
   try {
     const items = await ClipboardService.getClipboardHistoryFromDrive(req);
-    
-    res.status(200).json(items);
+    console.log("Fetched clipboard history:", items);
+    return res.status(200).json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 

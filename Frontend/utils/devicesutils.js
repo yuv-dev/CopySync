@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from "uuid";
 import { DEVICE_API_URI } from "@/configs/API_configs";
 
 export const getDeviceId = () => {
+  if (typeof window === "undefined") return null;
+
   const deviceId = localStorage.getItem("deviceId");
   if (deviceId) {
     return deviceId;
@@ -43,7 +45,7 @@ export const registerDevice = async () => {
   const platform = navigator?.userAgentData?.platform;
   const deviceType = getDeviceType();
   const lastRegistered = localStorage.getItem("clipSync-device-last-register");
-
+  if (!deviceId) return;
   // If already registered recently (e.g. in the last hour), skip
   // if (
   //   lastRegistered &&

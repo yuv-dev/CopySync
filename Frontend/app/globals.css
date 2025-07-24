@@ -39,7 +39,7 @@ body {
   }
 }
 
-.device-info{
+.device-info {
   color: oklch(82.8% 0.189 84.429);
   font-size: 0.9rem;
   font-weight: 500;
@@ -47,4 +47,8 @@ body {
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
+}
+
+.infinite-scroll-component__outerdiv {
+  width: 100%;
 }

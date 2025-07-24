@@ -6,6 +6,7 @@ const {
   listTextFilesInFolder,
   downloadTextFile,
 } = require("../utils/fileHandlinginGDrive");
+const { getOrCreateFolder } = require("../utils/getOrCreateDrivefolder");
 
 const {
   GOOGLE_CLIENT_ID,
@@ -15,25 +16,30 @@ const {
 
 // store any copied text
 exports.saveClipboard = async (req) => {
-  const filename = `clipboard-${Date.now()}.txt`;
+  try {
+    const filename = `clipboard-${Date.now()}.txt`;
+    const userId = req.user._id;
+    const deviceId = req.body.deviceId;
+    const createdAt = new Date();
+    console.log("Saving clipboard for user:", userId, "on device^^:", deviceId);
+    const driveResult = await uploadClipboardToDrive(
+      filename,
+      (refresh_token = req.user.driveRefreshToken),
+      (content = req.body.text),
+      deviceId
+    );
 
-  const driveResult = await uploadClipboardToDrive(
-    filename,
-    (refresh_token = req.user.driveRefreshToken),
-    (content = req.body.text)
-  );
+    // Emit to all other devices
+    console.log("Emitting clipboard update to all devices for user:", userId);
+    global.io
+      .to(userId)
+      .emit("clipboard-update", { text: req.body.text, deviceId });
 
-  const userId = req.user._id;
-  const deviceId = req.body.deviceId;
-  const createdAt = new Date();
-  
-  // Emit to all other devices
-  global.io.to(userId).emit("clipboard-update", {
-    text: req.body.text,
-    deviceId, // sender's deviceId
-  });
-
-  return { filename, driveFileId: driveResult.id };
+    return { filename, driveFileId: driveResult.id };
+  } catch (error) {
+    console.error("Error saving clipboard:", error);
+    throw new Error("Failed to save clipboard");
+  }
 };
 
 //Get the online stored clipboard history from Google Drive
@@ -63,11 +69,15 @@ exports.getClipboardHistoryFromDrive = async (req) => {
 
     oauth2Client.setCredentials({ refresh_token });
     const drive = google.drive({ version: "v3", auth: oauth2Client });
-
     const folderId = await getClipSyncFolderId(
       drive,
       (folderName = "ClipSync")
     );
+    if (!folderId) {
+      console.error("ClipSync folder not found or created.");
+      getOrCreateFolder(drive, "ClipSync");
+      return { clipboardData: [], nextPageToken: null }; // Return empty if folder not
+    }
     const listResponse = await listTextFilesInFolder(
       drive,
       folderId,
@@ -80,7 +90,13 @@ exports.getClipboardHistoryFromDrive = async (req) => {
     const clipboardData = [];
     for (const file of files) {
       const content = await downloadTextFile(drive, file.id);
-      clipboardData.push(content);
+      clipboardData.push({
+        content,
+        fileId: file.id,
+        filename: file.name,
+        createdAt: file.createdTime,
+        deviceId: file.properties.deviceId,
+      });
     }
 
     return {
@@ -89,6 +105,6 @@ exports.getClipboardHistoryFromDrive = async (req) => {
     };
   } catch (err) {
     console.error("Error fetching clipboard history from Drive:", err);
-    return []; // Fallback if something goes wrong
+    return { clipboardData: [], nextPageToken: null }; // Fallback if something goes wrong
   }
 };

@@ -5,6 +5,7 @@ const uploadOrUpdateFile = async (
   folderId,
   fileName,
   content,
+  deviceId,
   storedFileId = null
 ) => {
   try {
@@ -30,6 +31,9 @@ const uploadOrUpdateFile = async (
         name: fileName,
         parents: [folderId],
         mimeType: "text/plain",
+        properties: {
+          deviceId: deviceId || null, // or use a separate deviceId variable if available
+        },
       },
       media: {
         mimeType: "text/plain",
