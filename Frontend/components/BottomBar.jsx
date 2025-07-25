@@ -61,7 +61,7 @@ const BottomBar = ({
         >
           {
             xClipboard.filter((item) =>
-              item.toLowerCase().includes(searchQuery.toLowerCase())
+              item.content.toLowerCase().includes(searchQuery.toLowerCase())
             ).length
           }
         </button>

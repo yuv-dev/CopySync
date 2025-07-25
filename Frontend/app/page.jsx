@@ -17,7 +17,6 @@ export default function Home() {
 
   const handleLoginSuccess = async (response) => {
     try {
-      console.log("Login Credential Recieved:", response);
       await login(response.credential);
     } catch (error) {
       console.error("Login error:", error);

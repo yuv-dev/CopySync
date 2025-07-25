@@ -1,4 +1,9 @@
 const { google } = require("googleapis");
+const {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI,
+} = require("../config/env");
 
 const { uploadClipboardToDrive } = require("../utils/uploadClipboardToDrive");
 const {
@@ -7,33 +12,35 @@ const {
   downloadTextFile,
 } = require("../utils/fileHandlinginGDrive");
 const { getOrCreateFolder } = require("../utils/getOrCreateDrivefolder");
-
-const {
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI,
-} = require("../config/env");
+const { emitClipboardUpdate } = require("../socket");
 
 // store any copied text
 exports.saveClipboard = async (req) => {
   try {
     const filename = `clipboard-${Date.now()}.txt`;
+    const content = req.body.text;
     const userId = req.user._id;
     const deviceId = req.body.deviceId;
     const createdAt = new Date();
-    console.log("Saving clipboard for user:", userId, "on device^^:", deviceId);
     const driveResult = await uploadClipboardToDrive(
       filename,
       (refresh_token = req.user.driveRefreshToken),
-      (content = req.body.text),
+      content,
       deviceId
     );
 
     // Emit to all other devices
-    console.log("Emitting clipboard update to all devices for user:", userId);
-    global.io
-      .to(userId)
-      .emit("clipboard-update", { text: req.body.text, deviceId });
+    const socketUserId = userId.toString();
+   
+    if (content && socketUserId) {
+      emitClipboardUpdate(socketUserId, {
+        content,
+        deviceId,
+        createdAt,
+        filename,
+        fileId: driveResult.id,
+      });
+    }
 
     return { filename, driveFileId: driveResult.id };
   } catch (error) {

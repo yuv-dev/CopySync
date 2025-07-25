@@ -24,14 +24,11 @@ export const uploadCopiedTextFunc = async ({
     return;
   }
 
-  console.log("Uploading clipboard text:", current, xClipboard[0]);
-
   if (
     current &&
     current !== lastClipboard.current &&
     current !== pausedClipboardValue
   ) {
-    console.log("Uploading clipboard text:", current, xClipboard[0]);
     const deviceId = getDeviceId();
     await fetch(BACKEND_URL + "/api/clipboard", {
       method: "POST",

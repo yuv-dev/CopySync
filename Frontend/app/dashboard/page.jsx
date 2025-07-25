@@ -6,7 +6,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { AuthContext } from "@/context/AuthContext";
 import { BACKEND_URL, CLIPBOARD_API_URI } from "@/configs/API_configs";
 
-import CopiedText from "@/components/CopiedText";
+import CopiedTextCard from "@/components/CopiedTextCard";
 import SideBar from "@/components/SideBar";
 import LoaderScreen from "@/components/LoaderScreen";
 import { useRouter } from "next/navigation";
@@ -68,27 +68,24 @@ const Page = () => {
       await registerDevice();
       await fetchClipboardHistory();
 
-      console.log(deviceId.current, " 71 page");
       if (user && socket.connected && deviceId.current) {
         socket.emit("online-device", {
           userId: user._id,
           deviceId: deviceId.current,
         });
-        console.log("Socket Emitted on Page Load:", socket.id);
       }
 
       socket.on("device-list-update", (deviceList) => {
-        console.log("Received device list update:", deviceList);
         // Update the devices state with the received device list
         setDevices(deviceList || []);
       });
 
       socket.on("clipboard-update", (data) => {
-        console.log("Received clipboard update:", data);
-        if (data.text && data.text === lastClipboard.current) return;
+        if (data.content === lastClipboard.current) return;
         if (data.deviceId !== deviceId.current) {
-          lastClipboard.current = data.text;
-          setXClipboard((prev) => [data.text, ...prev]);
+          lastClipboard.current = data.content;
+          const newUpdate = data;
+          setXClipboard((prev) => [{ ...data }, ...prev]);
         }
       });
     };
@@ -126,20 +123,7 @@ const Page = () => {
           console.log("Clipboard access failed", err);
         }
       }, 1000);
-    } else {
-      console.log("Reading clipboard...X", lastClipboard.current);
     }
-    // else {
-    //   const storePauseValue = async () => {
-    //     try {
-    //       const current = await navigator.clipboard.readText();
-    //       syncpausedValue.current = current.trim();
-    //     } catch (err) {
-    //       console.warn("Clipboard read for paused state failed", err);
-    //     }
-    //   };
-    //   storePauseValue();
-    // }
 
     return () => {
       if (interval) clearInterval(interval);
@@ -170,7 +154,16 @@ const Page = () => {
       }
       lastClipboard.current = current;
       localStorage.setItem("lastClipboard", current);
-      setXClipboard((prev) => [current, ...prev]);
+      setXClipboard((prev) => [
+        {
+          content: current,
+          createdAt: new Date().toLocaleString(),
+          deviceId: deviceId.current,
+          fileId: "null",
+          filename: "clipboard-local.txt",
+        },
+        ...prev,
+      ]);
 
       const savedtext = await fetch(BACKEND_URL + "/api/clipboard", {
         method: "POST",
@@ -182,6 +175,8 @@ const Page = () => {
         },
         body: JSON.stringify({ text: current, deviceId: deviceId.current }),
       });
+
+      //For future usage: Create Logic if somehow POST operation fails or status not 201
     } catch (error) {
       console.error("Error uploading copied text:", error);
     }
@@ -208,11 +203,10 @@ const Page = () => {
           }
         );
 
-        console.log("Fetched clipboard history:", response);
-        console.log("Fetched clipboard history:", response.data.clipboardData);
-        const clipboardData = response.data.clipboardData.map(
-          (item) => item.content
-        );
+        const clipboardData = response.data.clipboardData;
+        // .map(
+        //   (item) => item.content
+        // );
         const newToken = response.data.nextPageToken || null;
 
         if (isPaginated) {
@@ -221,10 +215,10 @@ const Page = () => {
           setXClipboard(clipboardData);
 
           if (clipboardData && clipboardData.length > 0) {
-            lastClipboard.current = clipboardData[0];
+            lastClipboard.current = clipboardData[0].content;
             localStorage.setItem(
               "lastClipboard",
-              JSON.stringify(clipboardData[0])
+              JSON.stringify(clipboardData[0].content)
             );
           }
         }
@@ -277,7 +271,9 @@ const Page = () => {
       <SideBar
         setSync={setSync}
         sync={sync}
-        manualReadFromClipboard={manualReadFromClipboard}
+        manualReadFromClipboard={() =>
+          manualReadFromClipboard(setXClipboard, lastClipboard)
+        }
         isFetching={isFetching}
         fetchClipboardHistory={fetchClipboardHistory}
         searchQuery={searchQuery}
@@ -327,14 +323,14 @@ const Page = () => {
           >
             {xClipboard
               .filter((item) =>
-                item.toLowerCase().includes(searchQuery.toLowerCase())
+                item.content.toLowerCase().includes(searchQuery.toLowerCase())
               )
               .map((item, index) => (
                 <div
                   key={index}
-                  className=" bg-gray-700 text-white p-2 rounded mb-2 w-full "
+                  className=" bg-gray-700 text-white rounded mb-3 w-full "
                 >
-                  <CopiedText item={item} />
+                  <CopiedTextCard item={item} />
                 </div>
               ))}
           </InfiniteScroll>

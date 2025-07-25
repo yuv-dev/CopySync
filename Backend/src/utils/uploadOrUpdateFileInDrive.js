@@ -1,4 +1,5 @@
 const { Readable } = require("stream");
+const { createBrotliDecompress } = require("zlib");
 
 const uploadOrUpdateFile = async (
   drive,
@@ -39,7 +40,7 @@ const uploadOrUpdateFile = async (
         mimeType: "text/plain",
         body: bufferStream,
       },
-      fields: "id",
+      fields: "id, properties",
     });
     return createResponse.data;
   } catch (err) {

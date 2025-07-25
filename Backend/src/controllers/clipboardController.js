@@ -13,7 +13,6 @@ exports.getClipboardHistory = async (req, res) => {
 
   try {
     const items = await ClipboardService.getClipboardHistoryFromDrive(req);
-    console.log("Fetched clipboard history:", items);
     return res.status(200).json(items);
   } catch (err) {
     return res.status(500).json({ error: err.message });

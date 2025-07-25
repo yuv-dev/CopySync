@@ -52,7 +52,7 @@ const SideBar = ({
       <div className="flex flex-col border-1 border-gray-300 p-4 rounded-lg">
         {/* Manual Copy */}
         <button
-          onClick={() => manualReadFromClipboard(setXClipboard, lastClipboard)}
+          onClick={manualReadFromClipboard}
           className="p-2 bg-blue-500 text-white hover:bg-blue-700"
         >
           Manual Read Clipboard
@@ -75,7 +75,7 @@ const SideBar = ({
           <span className="text-black text-lg font-bold border-2 px-2 ml-2 rounded">
             {
               xClipboard?.filter((item) =>
-                item.toLowerCase().includes(searchQuery.toLowerCase())
+                item.content.toLowerCase().includes(searchQuery.toLowerCase())
               ).length
             }
           </span>

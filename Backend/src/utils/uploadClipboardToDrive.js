@@ -30,7 +30,6 @@ exports.uploadClipboardToDrive = async (
     // Step 2: Get existing fileId from DB or elsewhere (or pass null if first time)
     const existingFileId = null; // Replace with your file tracking logic
 
-    console.log("deviceId", deviceId, "uploadClipboard");
     // Step 3: Upload or update the file
     const file = await uploadOrUpdateFile(
       drive,
@@ -41,7 +40,6 @@ exports.uploadClipboardToDrive = async (
       (storedFileId = existingFileId)
     );
 
-    console.log("File uploaded successfully:", file);
     return file;
   } catch (err) {
     console.error("Error uploading to Google Drive:", err);
